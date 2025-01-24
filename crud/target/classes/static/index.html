@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookstore</title>
+  <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTc4oPCotbZoFOzLyzE0tdG55XMGYxUIaPa2w&s" type="image/png">
+
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #ffccd5, #ffffff);
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .search-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .search-container input {
+      padding: 10px;
+      width: 300px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .search-container button {
+      padding: 10px;
+      font-size: 14px;
+      background-color: #6200ea;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .search-container button:hover {
+      background-color: #3700b3;
+    }
+
+    #book-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .book-item {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      width: 250px;
+      text-align: center;
+      background-color: #f9f9f9;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .book-item img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+    }
+
+    .book-item button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+
+    .book-item .delete-btn {
+      background-color: red;
+    }
+
+    .book-item .delete-btn:hover {
+      background-color: darkred;
+    }
+
+    .book-item .update-btn {
+      background-color: blue;
+    }
+
+    .book-item .update-btn:hover {
+      background-color: darkblue;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0,0,0);
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .modal button {
+      background-color: green;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .modal button:hover {
+      background-color: darkgreen;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bookstore</h1>
+  <div class="search-container">
+    <div>
+      <label for="search-author">Search by Author:</label>
+      <input type="text" id="search-author" placeholder="Enter author name">
+      <button onclick="searchByAuthor()">Search</button>
+    </div>
+    <div>
+      <label for="search-title">Search by Title Keyword:</label>
+      <input type="text" id="search-title" placeholder="Enter title keyword">
+      <button onclick="searchByTitle()">Search</button>
+    </div>
+    <div>
+      <label for="min-price">Min Price:</label>
+      <input type="number" id="min-price" step="0.01">
+      <label for="max-price">Max Price:</label>
+      <input type="number" id="max-price" step="0.01">
+      <button onclick="searchByPrice()">Search</button>
+    </div>
+  </div>
+  <div id="book-list"></div>
+
+  <!-- Modal for updating book details -->
+  <div id="update-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2>Update Book Details</h2>
+      <form id="update-form">
+        <input type="text" id="update-title" placeholder="Title" required>
+        <input type="text" id="update-author" placeholder="Author" required>
+        <input type="number" id="update-price" placeholder="Price" step="0.01" required>
+        <button type="submit">Update Book</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Fetch all books and display them
+    function fetchAllBooks() {
+      fetch('/books')
+        .then(response => response.json())
+        .then(data => displayBooks(data))
+        .catch(error => console.error("Error fetching books:", error));
+    }
+
+    // Search by author
+    function searchByAuthor() {
+      const author = document.getElementById("search-author").value;
+      fetch(`/books/author/${author}`)
+        .then(response => response.json())
+        .then(data => displayBooks(data))
+        .catch(error => console.error("Error:", error));
+    }
+
+    // Search by title keyword
+    function searchByTitle() {
+      const keyword = document.getElementById("search-title").value;
+      fetch(`/books/title/${keyword}`)
+        .then(response => response.json())
+        .then(data => displayBooks(data))
+        .catch(error => console.error("Error:", error));
+    }
+
+    // Search by price range
+    function searchByPrice() {
+      const minPrice = document.getElementById("min-price").value;
+      const maxPrice = document.getElementById("max-price").value;
+      fetch(`/books/price?minPrice=${minPrice}&maxPrice=${maxPrice}`)
+        .then(response => response.json())
+        .then(data => displayBooks(data))
+        .catch(error => console.error("Error:", error));
+    }
+
+    // Display books
+    function displayBooks(books) {
+      const bookList = document.getElementById("book-list");
+      bookList.innerHTML = ""; // Clear previous results
+      books.forEach(book => {
+        const bookItem = `
+          <div class="book-item">
+            <h3>${book.title}</h3>
+            <p><strong>Author:</strong> ${book.author}</p>
+            <p><strong>Price:</strong> ₹${book.price.toFixed(2)}</p>
+            <img src="${book.imageUrl}" alt="${book.title}">
+            <button class="delete-btn" onclick="deleteBook(${book.id})">Delete</button>
+            <button class="update-btn" onclick="updateBook(${book.id}, '${book.title}', '${book.author}', ${book.price})">Update</button>
+          </div>
+        `;
+        bookList.innerHTML += bookItem;
+      });
+    }
+
+    // Delete book
+    function deleteBook(id) {
+      fetch(`/books/${id}`, { method: 'DELETE' })
+        .then(response => {
+          if (response.ok) {
+            alert("Book deleted successfully");
+            fetchAllBooks(); // Refresh book list
+          } else {
+            alert("Error deleting book");
+          }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+
+    // Update book
+    function updateBook(id, title, author, price) {
+      // Open the modal and pre-fill the book details
+      document.getElementById("update-title").value = title;
+      document.getElementById("update-author").value = author;
+      document.getElementById("update-price").value = price;
+      const updateForm = document.getElementById("update-form");
+
+      updateForm.onsubmit = function(event) {
+        event.preventDefault();
+
+        const updatedTitle = document.getElementById("update-title").value;
+        const updatedAuthor = document.getElementById("update-author").value;
+        const updatedPrice = document.getElementById("update-price").value;
+
+        fetch(`/books/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: updatedTitle, author: updatedAuthor, price: updatedPrice })
+        })
+        .then(response => {
+          if (response.ok) {
+            alert("Book updated successfully");
+            closeModal(); // Close modal
+            fetchAllBooks(); // Refresh book list
+          } else {
+            alert("Error updating book");
+          }
+        })
+        .catch(error => console.error("Error:", error));
+      };
+
+      document.getElementById("update-modal").style.display = "block"; // Show modal
+    }
+
+    // Close the modal
+    function closeModal() {
+      document.getElementById("update-modal").style.display = "none";
+    }
+
+    // Fetch all books on page load
+    window.onload = fetchAllBooks;
+  </script>
+</body>
+</html>
